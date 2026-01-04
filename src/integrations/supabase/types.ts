@@ -34,39 +34,54 @@ export type Database = {
       }
       registrations: {
         Row: {
+          category: string | null
           created_at: string
           full_name: string
           id: string
           latitude: number | null
           longitude: number | null
           package_type: Database["public"]["Enums"]["package_type"]
+          plate_number: string | null
           proof_url: string
+          selected_packages: string[] | null
           status: Database["public"]["Enums"]["registration_status"]
           updated_at: string
+          vehicle_count: number | null
+          vehicle_type: string | null
           whatsapp: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           full_name: string
           id?: string
           latitude?: number | null
           longitude?: number | null
           package_type: Database["public"]["Enums"]["package_type"]
+          plate_number?: string | null
           proof_url: string
+          selected_packages?: string[] | null
           status?: Database["public"]["Enums"]["registration_status"]
           updated_at?: string
+          vehicle_count?: number | null
+          vehicle_type?: string | null
           whatsapp: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           full_name?: string
           id?: string
           latitude?: number | null
           longitude?: number | null
           package_type?: Database["public"]["Enums"]["package_type"]
+          plate_number?: string | null
           proof_url?: string
+          selected_packages?: string[] | null
           status?: Database["public"]["Enums"]["registration_status"]
           updated_at?: string
+          vehicle_count?: number | null
+          vehicle_type?: string | null
           whatsapp?: string
         }
         Relationships: []

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, Suspense } from "react";
-import { Send, Loader2, User, CheckCircle, X, Plus, Edit3, Shield, MapPin } from "lucide-react";
+import { Send, Loader2, User, CheckCircle, X, Plus, Edit3, Shield, MapPin, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { LocationCapture } from "@/components/LocationCapture";
 import { LocationPermissionModal } from "@/components/LocationPermissionModal";
 import { GPSSecurityStatus } from "@/components/GPSSecurityStatus";
 import { VehicleModal } from "@/components/VehicleModal";
+import { RegulationPopup } from "@/components/RegulationPopup";
 import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 import { useGPSSecurity } from "@/hooks/useGPSSecurity";
@@ -52,6 +53,7 @@ export function RegistrationForm() {
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [showDuplicatePopup, setShowDuplicatePopup] = useState(false);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [showRegulationPopup, setShowRegulationPopup] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [resetFileUpload, setResetFileUpload] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -270,14 +272,23 @@ export function RegistrationForm() {
         // Upload proof image
         const proofUrl = await uploadProofImage(formData.proofFile!);
 
-        // Insert registration data - now handling multiple vehicles
+        // Insert registration data - now handling multiple vehicles and packages
+        // Parse selected packages
+        const selectedPackages = formData.packageType.includes(',') 
+          ? formData.packageType.split(',').map(p => p.trim())
+          : [formData.packageType];
+        
+        // Use first package as primary package_type (for backward compatibility)
+        const primaryPackage = selectedPackages[0] as 'contest' | 'meetup';
+        
         const registrationData = {
           full_name: formData.fullName.trim(),
           whatsapp: formData.whatsapp.trim(),
           vehicle_type: formData.vehicles.map(v => v.vehicleType.trim()).join(', '),
           plate_number: formData.vehicles.map(v => v.plateNumber.trim()).join(', '),
           category: formData.category,
-          package_type: formData.packageType.includes(',') ? 'contest,meetup' : formData.packageType as 'contest' | 'meetup',
+          package_type: primaryPackage,
+          selected_packages: selectedPackages,
           proof_url: proofUrl,
           latitude: locationToUse?.latitude || null,
           longitude: locationToUse?.longitude || null,
@@ -655,6 +666,18 @@ export function RegistrationForm() {
                 type="button"
                 variant="outline"
                 onClick={() => {
+                  window.open('https://regulasivol1.vercel.app/', '_blank');
+                }}
+                className="w-full h-11 border-2 border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400 transition-all duration-200 text-sm font-semibold"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Lihat Regulasi
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
                   window.open('https://wa.me/6281228019788?text=Halo%20Admin,%20saya%20butuh%20bantuan%20untuk%20pendaftaran%20Fun%20Bike%20Contest', '_blank');
                 }}
                 className="w-full h-11 border-2 border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 transition-all duration-200 text-sm font-semibold"
@@ -742,8 +765,8 @@ export function RegistrationForm() {
                 </h5>
                 <div className="space-y-1 text-xs text-green-700">
                   <p>• Verifikasi pembayaran dalam 1x24 jam</p>
-                  <p>• Konfirmasi via WhatsApp</p>
-                  <p>• Siap ikut event</p>
+                  <p>• Akan di konfirmasi via WhatsApp</p>
+                  <p>• Silahkan di tunggu info nya</p>
                 </div>
               </div>
             </div>
@@ -931,6 +954,11 @@ export function RegistrationForm() {
           });
         }}
       />
+
+      {/* Regulation Popup - Shows on first visit */}
+      {showRegulationPopup && (
+        <RegulationPopup onClose={() => setShowRegulationPopup(false)} />
+      )}
     </div>
   );
 }

@@ -48,6 +48,7 @@ interface Registration {
   plate_number?: string;
   category?: string;
   package_type: "contest" | "meetup";
+  selected_packages?: string[] | null;
   proof_url: string;
   latitude: number | null;
   longitude: number | null;
@@ -286,23 +287,56 @@ export default function AdminDashboard() {
   };
 
   const formatPrice = (type: string) => {
+    if (type === "both") return "Rp 500.000";
     return type === "contest" ? "Rp 350.000" : "Rp 150.000";
   };
 
   const filteredRegistrations = registrations.filter((reg) => {
     const matchesSearch = reg.full_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesPackage = filterPackage === "all" || reg.package_type === filterPackage;
+    
+    // Check if registration matches the package filter
+    const packages = reg.selected_packages && reg.selected_packages.length > 0 
+      ? reg.selected_packages 
+      : [reg.package_type];
+    const matchesPackage = filterPackage === "all" || packages.includes(filterPackage);
+    
     const matchesStatus = filterStatus === "all" || reg.status === filterStatus;
     return matchesSearch && matchesPackage && matchesStatus;
   });
 
   const stats = {
     total: registrations.length,
-    contest: registrations.filter((r) => r.package_type === "contest").length,
-    meetup: registrations.filter((r) => r.package_type === "meetup").length,
-    revenue:
-      registrations.filter((r) => r.package_type === "contest").length * 350000 +
-      registrations.filter((r) => r.package_type === "meetup").length * 150000,
+    contest: registrations.filter((r) => {
+      const packages = r.selected_packages && r.selected_packages.length > 0 
+        ? r.selected_packages 
+        : [r.package_type];
+      return packages.includes("contest");
+    }).length,
+    meetup: registrations.filter((r) => {
+      const packages = r.selected_packages && r.selected_packages.length > 0 
+        ? r.selected_packages 
+        : [r.package_type];
+      return packages.includes("meetup");
+    }).length,
+    revenue: registrations.reduce((total, r) => {
+      const packages = r.selected_packages && r.selected_packages.length > 0 
+        ? r.selected_packages 
+        : [r.package_type];
+      
+      // If both packages selected, charge 500k
+      if (packages.length > 1) {
+        return total + 500000;
+      }
+      // If only contest, charge 350k
+      if (packages.includes("contest")) {
+        return total + 350000;
+      }
+      // If only meetup, charge 150k
+      if (packages.includes("meetup")) {
+        return total + 150000;
+      }
+      return total;
+    }, 0),
     verified: registrations.filter((r) => r.status === "verified").length,
   };
 
@@ -536,16 +570,24 @@ export default function AdminDashboard() {
                           </div>
                           <div className="min-w-0">
                             <p className="text-xs text-slate-400 font-medium">Paket</p>
-                            <span
-                              className={cn(
-                                "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold",
-                                reg.package_type === "contest"
-                                  ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                                  : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                              )}
-                            >
-                              {reg.package_type === "contest" ? "Contest" : "Meet Up"}
-                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {(reg.selected_packages && reg.selected_packages.length > 0 
+                                ? reg.selected_packages 
+                                : [reg.package_type]
+                              ).map((pkg, idx) => (
+                                <span
+                                  key={idx}
+                                  className={cn(
+                                    "inline-flex px-2 py-0.5 rounded-full text-xs font-semibold",
+                                    pkg === "contest"
+                                      ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                      : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                                  )}
+                                >
+                                  {pkg === "contest" ? "Contest" : "Meet Up"}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
 
@@ -753,21 +795,31 @@ export default function AdminDashboard() {
                     <div className="p-2 rounded-lg bg-purple-500/20">
                       <img src={motorcycleIcon} alt="Package" className="h-5 w-5 opacity-80" />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="text-xs text-slate-400 font-medium">Paket Pendaftaran</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span
-                          className={cn(
-                            "inline-flex px-3 py-1 rounded-full text-sm font-bold",
-                            selectedRegistration.package_type === "contest"
-                              ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                              : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                          )}
-                        >
-                          {selectedRegistration.package_type === "contest" ? "Contest" : "Meet Up"}
-                        </span>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        {(selectedRegistration.selected_packages && selectedRegistration.selected_packages.length > 0 
+                          ? selectedRegistration.selected_packages 
+                          : [selectedRegistration.package_type]
+                        ).map((pkg, idx) => (
+                          <span
+                            key={idx}
+                            className={cn(
+                              "inline-flex px-3 py-1 rounded-full text-sm font-bold",
+                              pkg === "contest"
+                                ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                            )}
+                          >
+                            {pkg === "contest" ? "Contest" : "Meet Up"}
+                          </span>
+                        ))}
                         <span className="text-lg font-bold text-white">
-                          {formatPrice(selectedRegistration.package_type)}
+                          {formatPrice(
+                            selectedRegistration.selected_packages && selectedRegistration.selected_packages.length > 1
+                              ? "both"
+                              : selectedRegistration.package_type
+                          )}
                         </span>
                       </div>
                     </div>
