@@ -277,7 +277,7 @@ export function RegistrationForm() {
           vehicle_type: formData.vehicles.map(v => v.vehicleType.trim()).join(', '),
           plate_number: formData.vehicles.map(v => v.plateNumber.trim()).join(', '),
           category: formData.category,
-          package_type: formData.packageType as 'contest' | 'meetup',
+          package_type: formData.packageType.includes(',') ? 'contest,meetup' : formData.packageType as 'contest' | 'meetup',
           proof_url: proofUrl,
           latitude: locationToUse?.latitude || null,
           longitude: locationToUse?.longitude || null,
@@ -381,8 +381,7 @@ export function RegistrationForm() {
     "Fashion Modif Under 200cc",
     "Big Matic Modif",
     "Racing Look",
-    "Restorasi Modifikasi",
-    "Meet Up Contest"
+    "Restorasi Modifikasi"
   ], []);
 
   return (
@@ -580,7 +579,13 @@ export function RegistrationForm() {
               <PackageSelector
                 value={formData.packageType}
                 onChange={(value) => updateField("packageType", value)}
+                disabled={!formData.category}
               />
+              {!formData.category && (
+                <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                  Silakan pilih kategori contest terlebih dahulu
+                </p>
+              )}
               {errors.packageType && (
                 <p className="text-xs text-red-500">
                   {errors.packageType}
