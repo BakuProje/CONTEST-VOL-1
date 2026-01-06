@@ -287,9 +287,34 @@ export default function AdminDashboard() {
     });
   };
 
-  const formatPrice = (type: string) => {
-    if (type === "both") return "Rp 500.000";
-    return type === "contest" ? "Rp 350.000" : "Rp 150.000";
+  const formatPrice = (registration: Registration) => {
+    const packages = registration.selected_packages && registration.selected_packages.length > 0 
+      ? registration.selected_packages 
+      : [registration.package_type];
+    
+    const categories = registration.selected_categories && registration.selected_categories.length > 0 
+      ? registration.selected_categories 
+      : registration.category ? registration.category.split(',').map(c => c.trim()).filter(c => c) : [];
+    
+    const categoryCount = Math.max(1, categories.length);
+    
+    let total = 0;
+    
+    // Calculate contest price (350k per category)
+    if (packages.includes("contest")) {
+      total += 350000 * categoryCount;
+    }
+    
+    // Add meetup price if selected (fixed 150k)
+    if (packages.includes("meetup")) {
+      total += 150000;
+    }
+    
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0,
+    }).format(total);
   };
 
   const filteredRegistrations = registrations.filter((reg) => {
@@ -324,19 +349,26 @@ export default function AdminDashboard() {
         ? r.selected_packages 
         : [r.package_type];
       
-      // If both packages selected, charge 500k
-      if (packages.length > 1) {
-        return total + 500000;
-      }
-      // If only contest, charge 350k
+      // Get number of categories
+      const categories = r.selected_categories && r.selected_categories.length > 0 
+        ? r.selected_categories 
+        : r.category ? r.category.split(',').map(c => c.trim()).filter(c => c) : [];
+      
+      const categoryCount = Math.max(1, categories.length);
+      
+      let registrationTotal = 0;
+      
+      // Calculate contest price (350k per category)
       if (packages.includes("contest")) {
-        return total + 350000;
+        registrationTotal += 350000 * categoryCount;
       }
-      // If only meetup, charge 150k
+      
+      // Add meetup price if selected (fixed 150k)
       if (packages.includes("meetup")) {
-        return total + 150000;
+        registrationTotal += 150000;
       }
-      return total;
+      
+      return total + registrationTotal;
     }, 0),
     verified: registrations.filter((r) => r.status === "verified").length,
   };
@@ -816,11 +848,7 @@ export default function AdminDashboard() {
                           </span>
                         ))}
                         <span className="text-lg font-bold text-white">
-                          {formatPrice(
-                            selectedRegistration.selected_packages && selectedRegistration.selected_packages.length > 1
-                              ? "both"
-                              : selectedRegistration.package_type
-                          )}
+                          {formatPrice(selectedRegistration)}
                         </span>
                       </div>
                     </div>

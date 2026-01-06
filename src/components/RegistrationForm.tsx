@@ -164,6 +164,7 @@ export function RegistrationForm() {
 
     // Prevent double submission
     if (isSubmitting) {
+      console.log('⚠️ Already submitting, please wait...');
       return;
     }
 
@@ -173,45 +174,42 @@ export function RegistrationForm() {
       return;
     }
 
-    // Use current location from GPS security hook or form location
-    let locationToUse = currentLocation || formData.location;
-
-    // If no location from GPS hooks, try to get it directly as fallback
-    if (!locationToUse && navigator.geolocation) {
-      try {
-        console.log('🔄 Fallback: Trying to get location directly...');
-        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            resolve,
-            reject,
-            { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
-          );
-        });
-        
-        locationToUse = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy
-        };
-        console.log('✅ Fallback location obtained:', locationToUse);
-      } catch (error) {
-        console.log('❌ Fallback location failed:', error);
-        // Continue without location - location is optional
-      }
-    }
-
-    // Debug: Check if location is captured
-    console.log("🗺️ Form location data:", {
-      currentLocation,
-      formLocation: formData.location,
-      locationToUse,
-      gpsError,
-      isLocationAllowed
-    });
-
-    // Use regular submit function
     try {
+      // Start submission
       setIsSubmitting(true);
+      console.log('🚀 Starting form submission...');
+
+      // Try to get location (optional, non-blocking)
+      let locationToUse = currentLocation || formData.location;
+
+      if (!locationToUse && navigator.geolocation) {
+        try {
+          console.log('🔄 Attempting to get GPS location...');
+          const position = await Promise.race([
+            new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: false,
+                timeout: 3000,
+                maximumAge: 60000
+              });
+            }),
+            new Promise<never>((_, reject) => 
+              setTimeout(() => reject(new Error('GPS timeout')), 3000)
+            )
+          ]);
+          
+          locationToUse = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          console.log('✅ GPS location obtained:', locationToUse);
+        } catch (error) {
+          console.log('⚠️ GPS location not available, continuing without location');
+        }
+      }
+
+      console.log("🗺️ Final location data:", locationToUse);
       
       // Check for duplicate name and phone
       const { data: existingRegistrations } = await supabase
@@ -585,6 +583,7 @@ export function RegistrationForm() {
                 value={formData.packageType}
                 onChange={(value) => updateField("packageType", value)}
                 disabled={formData.categories.length === 0}
+                categoryCount={formData.categories.length}
               />
               {formData.categories.length === 0 && (
                 <p className="text-xs text-orange-600 bg-orange-50 p-2 rounded">

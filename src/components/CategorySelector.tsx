@@ -30,6 +30,7 @@ export function CategorySelector({
         onChange([...selectedCategories, category]);
       }
     }
+    // Keep dropdown open - don't close after selection
   };
 
   const handleRemoveCategory = (category: string) => {
